@@ -145,6 +145,73 @@ Use different schedules and prompts:
 0 1 * * 0,6 cd ~/ai-night-shift && PROMPT_FILE=templates/maintenance.txt bash claude-code/wrapper.sh
 ```
 
+## Loop Patterns (Reference)
+
+AI Night Shift builds on established autonomous loop patterns. Understanding these helps you choose the right configuration:
+
+| Pattern | Our Implementation | Best For |
+|---------|-------------------|----------|
+| Sequential Pipeline | `night_shift.sh` rounds | Multi-step dev workflows |
+| Periodic Patrol | `patrol.sh` | Lightweight check-ins |
+| Heartbeat | OpenClaw module | Coordinator/router agents |
+| De-Sloppify | `de_sloppify.sh` plugin | Quality cleanup after coding |
+| Completion Signal | Built-in to `night_shift.sh` | Smart early termination |
+| Shared Task Notes | `shared_task_notes.md` | Cross-round context bridge |
+
+### Completion Signal
+
+Your agent can signal "I'm done" by outputting a magic phrase. After N consecutive rounds with the signal, the shift stops early:
+
+```bash
+# In config.env
+COMPLETION_SIGNAL="NIGHT_SHIFT_COMPLETE"
+COMPLETION_THRESHOLD=2  # Stop after 2 consecutive signals
+```
+
+In your prompt template, tell the agent:
+```
+If all tasks are complete and there's nothing left to do,
+include the text NIGHT_SHIFT_COMPLETE in your output.
+```
+
+### Shared Task Notes (Cross-Round Memory)
+
+Each `claude -p` call starts with a fresh context. Use `shared_task_notes.md` to bridge context:
+
+```markdown
+## Progress
+- [x] Refactored auth module (Round 1)
+- [x] Added 15 unit tests (Round 2)
+- [ ] Still need: integration tests for OAuth flow
+
+## Notes for Next Round
+- The mock setup in tests/helpers.ts can be reused
+- Rate limiting endpoint has a race condition — needs mutex
+```
+
+Add `{SHARED_NOTES}` to your prompt template to inject this automatically.
+
+### De-Sloppify Pattern
+
+Instead of telling your AI "don't write sloppy code" (which degrades quality), enable the `de_sloppify.sh` plugin for a separate cleanup pass:
+
+```bash
+ln -s ../examples/de_sloppify.sh plugins/enabled/
+```
+
+This runs after each development round and removes:
+- Tests that verify language/framework behavior (not business logic)
+- Redundant type checks the type system already enforces
+- Debug print statements and commented-out code
+
+### Anti-Patterns to Avoid
+
+1. **Infinite loops without exit conditions** — always set `MAX_ROUNDS`, `WINDOW_HOURS`, or use completion signals
+2. **No context bridge** — without `shared_task_notes.md`, each round repeats work
+3. **Retrying the same failure** — capture error context and feed it forward, don't just retry
+4. **Negative instructions** — "don't do X" degrades quality; use a cleanup pass instead
+5. **All logic in one prompt** — separate concerns into different rounds/agents
+
 ## Telegram Integration
 
 ### Setup

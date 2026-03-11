@@ -30,6 +30,9 @@ WINDOW_HOURS="${WINDOW_HOURS:-6}"
 ROUND_TIMEOUT="${ROUND_TIMEOUT:-9000}"  # seconds per round (2.5h default)
 RATE_LIMIT_WAIT="${RATE_LIMIT_WAIT:-3600}"  # seconds to wait on rate limit
 SHUTDOWN_BUFFER="${SHUTDOWN_BUFFER:-300}"  # 5 min buffer before window ends
+COMPLETION_SIGNAL="${COMPLETION_SIGNAL:-NIGHT_SHIFT_COMPLETE}"  # Agent signals "done"
+COMPLETION_THRESHOLD="${COMPLETION_THRESHOLD:-2}"  # Consecutive signals to stop
+SHARED_NOTES="${NIGHT_SHIFT_DIR}/protocols/examples/shared_task_notes.md"
 
 # Claude Code binary
 CLAUDE_BIN="${CLAUDE_BIN:-claude}"
@@ -92,6 +95,7 @@ log "Prompt: $PROMPT_FILE"
 log "Window ends at: $(date -d @$WINDOW_END '+%Y-%m-%d %H:%M:%S' 2>/dev/null || date -r $WINDOW_END '+%Y-%m-%d %H:%M:%S' 2>/dev/null || echo $WINDOW_END)"
 
 ROUND=0
+CONSECUTIVE_COMPLETE=0
 while [ $ROUND -lt $MAX_ROUNDS ]; do
     ROUND=$((ROUND + 1))
     NOW=$(date +%s)
@@ -116,12 +120,19 @@ while [ $ROUND -lt $MAX_ROUNDS ]; do
         echo "[$(date '+%H:%M')] NightShift: Round $ROUND started" >> "$NIGHT_CHAT" 2>/dev/null || true
     fi
 
+    # Inject shared task notes context (cross-round memory)
+    NOTES_CONTEXT=""
+    if [ -f "$SHARED_NOTES" ]; then
+        NOTES_CONTEXT=$(cat "$SHARED_NOTES")
+    fi
+
     # Build the prompt with context injection
     ROUND_PROMPT=$(cat "$PROMPT_FILE")
     ROUND_PROMPT="${ROUND_PROMPT/\{ROUND\}/$ROUND}"
     ROUND_PROMPT="${ROUND_PROMPT/\{MAX_ROUNDS\}/$MAX_ROUNDS}"
     ROUND_PROMPT="${ROUND_PROMPT/\{DATE\}/$DATE_TAG}"
     ROUND_PROMPT="${ROUND_PROMPT/\{REMAINING_TIME\}/$((REMAINING / 60)) minutes}"
+    ROUND_PROMPT="${ROUND_PROMPT/\{SHARED_NOTES\}/$NOTES_CONTEXT}"
 
     # Execute Claude Code
     ROUND_REPORT="${REPORTS_DIR}/${DATE_TAG}_round${ROUND}.md"
@@ -155,6 +166,18 @@ while [ $ROUND -lt $MAX_ROUNDS ]; do
             log "Round $ROUND failed with exit code $ROUND_EXIT"
             ;;
     esac
+
+    # Check for completion signal (agent says "I'm done")
+    if grep -q "$COMPLETION_SIGNAL" "$ROUND_REPORT" 2>/dev/null; then
+        CONSECUTIVE_COMPLETE=$((CONSECUTIVE_COMPLETE + 1))
+        log "Completion signal detected ($CONSECUTIVE_COMPLETE/$COMPLETION_THRESHOLD)"
+        if [ $CONSECUTIVE_COMPLETE -ge $COMPLETION_THRESHOLD ]; then
+            log "Completion threshold reached, stopping early"
+            break
+        fi
+    else
+        CONSECUTIVE_COMPLETE=0
+    fi
 
     # Write round summary to night_chat
     if [ -f "$NIGHT_CHAT" ] || [ -d "$(dirname "$NIGHT_CHAT")" ]; then

@@ -3,6 +3,9 @@
 > A multi-agent autonomous framework that lets your AI assistants work while you sleep.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![繁體中文](https://img.shields.io/badge/lang-繁體中文-orange)](README.zh-TW.md)
+[![简体中文](https://img.shields.io/badge/lang-简体中文-red)](README.zh-CN.md)
+[![한국어](https://img.shields.io/badge/lang-한국어-green)](README.ko.md)
 
 **AI Night Shift** is an open-source framework for running multiple AI agents (Claude Code, Gemini, and more) in coordinated autonomous sessions during off-hours. Born from 30+ real production night shifts, this isn't theoretical — it's battle-tested.
 
@@ -113,7 +116,7 @@ ln -s plugins/examples/system_health.sh plugins/enabled/
 bash plugins/plugin_loader.sh --list
 ```
 
-Built-in plugins: System Health, Backup, Git Commit Summary, Morning Report
+Built-in plugins: System Health, Backup, Git Commit Summary, Morning Report, De-Sloppify
 
 ## Dashboard
 
@@ -122,6 +125,15 @@ Open `dashboard/index.html` in a browser. Drag and drop your report files to vis
 - Round-by-round timeline
 - Night chat messages
 - System health metrics
+
+## Advanced Features
+
+- **Completion Signal** — agents can say "I'm done" to end the shift early
+- **Shared Task Notes** — cross-round context memory bridge
+- **De-Sloppify Pattern** — separate cleanup pass for code quality
+- **Anti-Pattern Guide** — avoid common autonomous loop pitfalls
+
+Inspired by patterns from [autonomous-loops](https://github.com/anthropics/ecc) and the Claude Code community.
 
 ## Requirements
 
