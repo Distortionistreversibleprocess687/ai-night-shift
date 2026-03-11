@@ -59,17 +59,29 @@ The two modules are complementary:
 
 They share context through `night_chat.md` and `bot_inbox/`.
 
-## Known Issue: YOLO Mode Auto-Enable
+## Known Issue: YOLO Mode in Automated Sessions
 
-Gemini CLI's `--yolo` flag may not reliably enable YOLO mode in interactive (TUI) sessions. The TUI renders with YOLO available but not toggled on, requiring a manual Ctrl+Y press.
+Gemini CLI has multiple approval modes that are often confused:
 
-**Workaround for tmux-based automation:**
+| Mode | Flag | What it auto-approves | Status bar |
+|------|------|-----------------------|------------|
+| `default` | (none) | Nothing | `YOLO ctrl+y` |
+| `auto_edit` | Ctrl+Y toggle | File edits only | `shift+tab to accept edits` |
+| `yolo` | `--approval-mode yolo` | **All tools including shell** | `YOLO ctrl+y` (but `*` prompt) |
 
-1. Add `"approvalMode": "yolo"` to `~/.gemini/settings.json`
-2. After starting the Gemini CLI session, poll the tmux pane output:
-   - Wait for `YOLO ctrl+y` AND `Type your message` to appear (UI ready)
-   - Send `tmux send-keys -t <session> C-y` to toggle YOLO on
-   - Verify `shift+tab` appears in the pane (YOLO active indicator)
-3. Allow up to 30 seconds for the TUI to fully render before giving up
+**Common mistake:** Using `--yolo` flag or pressing Ctrl+Y only enables `auto_edit` mode, which still prompts for every shell command (ls, cat, python3, etc.). For full automation, you need `--approval-mode yolo`.
 
-This has been tested with Gemini CLI v0.33.0. Future versions may fix the `--yolo` flag behavior.
+**Correct setup for tmux-based automation:**
+
+```bash
+# Start with --approval-mode yolo (NOT --yolo)
+tmux new-session -d -s gemini-session \
+  gemini --approval-mode yolo
+
+# Optionally add to settings.json as fallback:
+# ~/.gemini/settings.json → { "approvalMode": "yolo" }
+```
+
+**Do NOT** send Ctrl+Y after starting — it toggles to `auto_edit` mode, which is weaker than `yolo`.
+
+Tested with Gemini CLI v0.33.0.
