@@ -4,15 +4,15 @@
 
 ### 「Night shift already running (PID XXXXX)」
 
-另一个实例正在运行，或存在过时的 PID 文件。
+另一个实例正在运行，或存在过时的 lock 目录。
 
 **修复：**
 ```bash
 # 检查是否真的在运行
 ps aux | grep night_shift
 
-# 如果是过时的，移除 PID 文件
-rm logs/night_shift.pid
+# 如果是过时的，移除 lock 目录
+rm -rf logs/night_shift.lock
 ```
 
 ### 速率限制错误

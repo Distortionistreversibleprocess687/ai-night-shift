@@ -16,8 +16,14 @@
 
 set -euo pipefail
 
-# ── Configuration ──
+# ── Load config if available ──
 NIGHT_SHIFT_DIR="${NIGHT_SHIFT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
+if [ -f "${NIGHT_SHIFT_DIR}/config.env" ]; then
+    # shellcheck source=/dev/null
+    source "${NIGHT_SHIFT_DIR}/config.env"
+fi
+
+# ── Configuration ──
 LOGS_DIR="${NIGHT_SHIFT_DIR}/logs"
 INBOX_DIR="${NIGHT_SHIFT_DIR}/protocols/bot_inbox/gemini"
 PROMPT_FILE="${NIGHT_SHIFT_DIR}/gemini/prompt_template.txt"
@@ -55,7 +61,7 @@ log() {
 
 # ── Collect inbox items ──
 INBOX_CONTENT=""
-if [ -d "$INBOX_DIR" ] && [ "$(ls -A "$INBOX_DIR" 2>/dev/null | grep -v done)" ]; then
+if compgen -G "${INBOX_DIR}/*.json" > /dev/null 2>&1; then
     INBOX_CONTENT=$(INBOX_PATH="$INBOX_DIR" python3 -c "
 import json, os, glob
 inbox = os.environ['INBOX_PATH']

@@ -17,6 +17,12 @@ set -euo pipefail
 NIGHT_SHIFT_DIR="${NIGHT_SHIFT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
 export NIGHT_SHIFT_DIR
 
+# Load config if available
+if [ -f "${NIGHT_SHIFT_DIR}/config.env" ]; then
+    # shellcheck source=/dev/null
+    source "${NIGHT_SHIFT_DIR}/config.env"
+fi
+
 LOGS_DIR="${NIGHT_SHIFT_DIR}/logs"
 DATE_TAG=$(date +%Y-%m-%d)
 WRAPPER_LOG="${LOGS_DIR}/wrapper_${DATE_TAG}.log"

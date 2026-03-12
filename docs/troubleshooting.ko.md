@@ -4,15 +4,15 @@
 
 ### "Night shift already running (PID XXXXX)"
 
-다른 인스턴스가 실행 중이거나 오래된 PID 파일이 존재합니다.
+다른 인스턴스가 실행 중이거나 오래된 lock 디렉토리가 존재합니다.
 
 **해결:**
 ```bash
 # 실제로 실행 중인지 확인
 ps aux | grep night_shift
 
-# 오래된 경우 PID 파일 제거
-rm logs/night_shift.pid
+# 오래된 경우 lock 디렉토리 제거
+rm -rf logs/night_shift.lock
 ```
 
 ###Rate Limit 오류

@@ -134,7 +134,7 @@ Open `dashboard/index.html` in a browser. Drag and drop your report files to vis
 - **De-Sloppify Pattern** — separate cleanup pass for code quality
 - **Anti-Pattern Guide** — avoid common autonomous loop pitfalls
 
-Inspired by patterns from [autonomous-loops](https://github.com/anthropics/ecc) and the Claude Code community.
+Inspired by patterns from the Claude Code community and autonomous agent best practices.
 
 ## Requirements
 

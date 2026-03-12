@@ -105,7 +105,7 @@ ln -s plugins/examples/system_health.sh plugins/enabled/
 bash plugins/plugin_loader.sh --list
 ```
 
-內建外掛：系統健康檢查、備份、Git 提交摘要、晨報生成
+內建外掛：系統健康檢查、備份、Git 提交摘要、晨報生成、De-Sloppify 程式碼清理
 
 ## 儀表板
 

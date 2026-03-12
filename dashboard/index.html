@@ -333,6 +333,7 @@
         <h1>🌙 AI Night Shift Dashboard</h1>
         <div class="header-actions">
             <button class="btn" id="loadDataBtn" onclick="loadData()">Load Reports</button>
+            <button class="btn" id="demoBtn" onclick="loadDemo()">Load Demo</button>
             <button class="btn btn-primary" id="refreshBtn" onclick="refreshAll()">Refresh</button>
             <button class="theme-toggle" onclick="toggleTheme()">🌓</button>
         </div>
@@ -487,6 +488,13 @@
     </div>
 
     <script>
+        // ── Sanitize HTML to prevent XSS ──
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
         // ── Theme ──
         function toggleTheme() {
             const html = document.documentElement;
@@ -577,9 +585,9 @@
                 if (al.includes('heartbeat') || al.includes('mimi')) agentClass = 'chat-agent-heartbeat';
 
                 return `<div class="chat-line">
-                    <span class="chat-ts">[${m.time}]</span>
-                    <span class="${agentClass}">${m.agent}:</span>
-                    ${m.msg}
+                    <span class="chat-ts">[${escapeHtml(m.time)}]</span>
+                    <span class="${agentClass}">${escapeHtml(m.agent)}:</span>
+                    ${escapeHtml(m.msg)}
                 </div>`;
             }).join('');
 
@@ -600,12 +608,12 @@
                 const isActive = s.status === 'active';
                 if (isActive) activeCount++;
                 const dotClass = isActive ? 'dot-green' : 'dot-gray';
-                const statusText = isActive ? `Active (${s.lastSeen})` : 'Idle';
+                const statusText = isActive ? `Active (${escapeHtml(s.lastSeen || '')})` : 'Idle';
 
                 return `<div class="agent-card">
                     <div class="agent-avatar">${a.emoji}</div>
-                    <div class="agent-name">${a.name}</div>
-                    <div class="agent-engine">${a.role}</div>
+                    <div class="agent-name">${escapeHtml(a.name)}</div>
+                    <div class="agent-engine">${escapeHtml(a.role)}</div>
                     <div class="agent-status">
                         <span class="status-dot ${dotClass}"></span> ${statusText}
                     </div>
@@ -628,9 +636,9 @@
 
             el.innerHTML = state.timeline.map(t => `
                 <div class="timeline-item">
-                    <span class="timeline-time">${t.time}</span>
-                    <span class="timeline-agent">${t.agent}</span>
-                    <span class="timeline-msg">${t.msg}</span>
+                    <span class="timeline-time">${escapeHtml(t.time)}</span>
+                    <span class="timeline-agent">${escapeHtml(t.agent)}</span>
+                    <span class="timeline-msg">${escapeHtml(t.msg)}</span>
                 </div>
             `).join('');
         }
@@ -661,8 +669,12 @@
                 } else if (name.includes('summary') || name.includes('report') || name.includes('round')) {
                     parseSummaryFile(text);
                 } else if (name.includes('health')) {
-                    document.getElementById('healthContent').innerHTML =
-                        `<pre style="font-size:0.8rem;white-space:pre-wrap;color:var(--text)">${text}</pre>`;
+                    const pre = document.createElement('pre');
+                    pre.style.cssText = 'font-size:0.8rem;white-space:pre-wrap;color:var(--text)';
+                    pre.textContent = text;
+                    const container = document.getElementById('healthContent');
+                    container.innerHTML = '';
+                    container.appendChild(pre);
                 } else {
                     parseSummaryFile(text);
                 }
@@ -696,11 +708,14 @@
             zone.addEventListener('click', loadData);
         });
 
-        // ── Auto-refresh (if served locally) ──
+        // ── Refresh: reload demo or re-render current state ──
         function refreshAll() {
+            renderChat();
+            renderAgents();
+            renderStats();
+            renderTimeline();
+            updateStatusBar();
             document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
-            // In a real setup, fetch files from the local server
-            // For now, just update the timestamp
         }
 
         // ── Demo data (remove in production) ──

@@ -11,6 +11,7 @@ set -euo pipefail
 
 NIGHT_SHIFT_DIR="${NIGHT_SHIFT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 CLAUDE_BIN="${CLAUDE_BIN:-claude}"
+SKIP_PERMISSIONS="${SKIP_PERMISSIONS:-false}"
 
 echo "=== De-Sloppify Plugin ==="
 
@@ -35,9 +36,17 @@ fi
 
 echo "Reviewing changes for code slop..."
 
-# Run Claude Code in non-interactive cleanup mode
+# Run Claude Code in cleanup mode
+# Note: --print is read-only (review only). To auto-fix, set SKIP_PERMISSIONS=true.
+CLAUDE_FLAGS=()
+if [ "$SKIP_PERMISSIONS" = "true" ]; then
+    CLAUDE_FLAGS+=(--dangerously-skip-permissions)
+else
+    CLAUDE_FLAGS+=(--print)
+fi
+
 if command -v "$CLAUDE_BIN" &>/dev/null; then
-    "$CLAUDE_BIN" --print -p "Review all uncommitted changes in this repository. Remove:
+    "$CLAUDE_BIN" "${CLAUDE_FLAGS[@]}" -p "Review all uncommitted changes in this repository. Remove:
 - Tests that verify language/framework behavior rather than business logic
 - Redundant type checks that the type system already enforces
 - Over-defensive error handling for impossible states

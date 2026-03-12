@@ -17,12 +17,17 @@
 
 set -euo pipefail
 
-# ── Configuration (override via env or flags) ──
+# ── Load config if available ──
 NIGHT_SHIFT_DIR="${NIGHT_SHIFT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
+if [ -f "${NIGHT_SHIFT_DIR}/config.env" ]; then
+    # shellcheck source=/dev/null
+    source "${NIGHT_SHIFT_DIR}/config.env"
+fi
+
+# ── Configuration (override via env or flags) ──
 LOGS_DIR="${NIGHT_SHIFT_DIR}/logs"
 REPORTS_DIR="${NIGHT_SHIFT_DIR}/reports"
 PROMPT_FILE="${NIGHT_SHIFT_DIR}/claude-code/prompt_template.txt"
-PID_FILE="${NIGHT_SHIFT_DIR}/logs/night_shift.pid"
 NIGHT_CHAT="${NIGHT_SHIFT_DIR}/protocols/night_chat.md"
 
 MAX_ROUNDS="${MAX_ROUNDS:-5}"
@@ -64,7 +69,8 @@ DATE_TAG=$(date +%Y-%m-%d)
 SESSION_LOG="${LOGS_DIR}/session_${DATE_TAG}.log"
 
 log() {
-    local msg="[$(date '+%Y-%m-%d %H:%M:%S')] $*"
+    local msg
+    msg="[$(date '+%Y-%m-%d %H:%M:%S')] $*"
     echo "$msg" | tee -a "$SESSION_LOG"
 }
 

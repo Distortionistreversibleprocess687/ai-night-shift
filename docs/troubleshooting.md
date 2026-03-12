@@ -4,15 +4,15 @@
 
 ### "Night shift already running (PID XXXXX)"
 
-Another instance is running, or a stale PID file exists.
+Another instance is running, or a stale lock directory exists.
 
 **Fix:**
 ```bash
 # Check if it's actually running
 ps aux | grep night_shift
 
-# If stale, remove the PID file
-rm logs/night_shift.pid
+# If stale, remove the lock directory
+rm -rf logs/night_shift.lock
 ```
 
 ### Rate Limit Errors

@@ -20,10 +20,9 @@ set -euo pipefail
 # ── Defaults ──
 INSTALL_DIR="${HOME}/ai-night-shift"
 SETUP_CRON=true
-SETUP_SYSTEMD=false
+SETUP_SYSTEMD=false  # Reserved for future systemd service setup
 CLAUDE_SCHEDULE="0 17 * * *"       # 5 PM UTC (adjust to your timezone)
 GEMINI_SCHEDULE="45 17,19,21 * * *" # Every 2h during night window
-TIMEZONE="${TZ:-UTC}"
 
 # Colors
 RED='\033[0;31m'

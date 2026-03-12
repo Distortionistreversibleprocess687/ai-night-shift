@@ -7,7 +7,6 @@ set -euo pipefail
 
 NIGHT_SHIFT_DIR="${NIGHT_SHIFT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
 REPORTS_DIR="${NIGHT_SHIFT_DIR}/reports"
-LOGS_DIR="${NIGHT_SHIFT_DIR}/logs"
 NIGHT_CHAT="${NIGHT_SHIFT_DIR}/protocols/night_chat.md"
 DATE_TAG=$(date +%Y-%m-%d)
 
