@@ -145,6 +145,68 @@ Use different schedules and prompts:
 0 1 * * 0,6 cd ~/ai-night-shift && PROMPT_FILE=templates/maintenance.txt bash claude-code/wrapper.sh
 ```
 
+## Prompt Design for Autonomy
+
+The #1 cause of failed night shifts: your agent stops mid-task and waits for confirmation that never comes.
+
+### The Problem
+
+Most AI CLI tools have interactive behaviors by default:
+- Claude Code asks "Should I proceed with this change?"
+- Codex CLI prompts for approval on file modifications
+- Some agents wait for input on ambiguous instructions
+
+In unattended mode, these prompts mean your agent sits idle until timeout.
+
+### The Solution
+
+Every prompt template must include an explicit **Autonomy Rules** block:
+
+```
+## Autonomy Rules (CRITICAL)
+
+You are running unattended. No human is available to respond.
+
+- NEVER ask for confirmation — decide and execute
+- NEVER wait for user input — if uncertain, choose the safest option and proceed
+- NEVER use interactive commands — no read, no select, no editors that wait for input
+- If stuck, skip and move on — log the blocker, move to the next task after 3 failed attempts
+```
+
+All templates in `templates/` include this block. If you write custom prompts, **always include it**.
+
+### Additional Prompt Tips
+
+1. **Be specific about scope** — "Fix the auth tests" not "improve the code"
+2. **Define done** — "Run tests, all must pass" gives a clear exit condition
+3. **Constrain decisions** — "Use PostgreSQL, not SQLite" prevents deliberation
+4. **Set priorities** — numbered lists tell the agent what to do first if time runs out
+
+### Claude Code Hook Safety Lock
+
+Claude Code supports [hooks](https://docs.anthropic.com/en/docs/claude-code/hooks) that run on lifecycle events. You can use them as an additional safety layer:
+
+```json
+// .claude/settings.json
+{
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"[$(date '+%H:%M')] Agent session ended\" >> ~/ai-night-shift/protocols/night_chat.md"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+This logs agent session boundaries to the shared chat, making it visible to other agents when sessions start/stop.
+
 ## Loop Patterns (Reference)
 
 AI Night Shift builds on established autonomous loop patterns. Understanding these helps you choose the right configuration:

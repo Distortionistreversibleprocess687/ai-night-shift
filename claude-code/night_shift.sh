@@ -1,10 +1,17 @@
 #!/usr/bin/env bash
 # ============================================================================
-# AI Night Shift — Claude Code Module
-# Autonomous night shift runner for Claude Code CLI
+# AI Night Shift — Main Runner
+# Autonomous night shift runner with pluggable agent adapters
 #
 # Usage:
 #   ./night_shift.sh [--max-rounds 5] [--window-hours 6] [--prompt prompt.txt]
+#                    [--adapter claude-code]
+#
+# Adapters:
+#   claude-code  — Claude Code CLI (default)
+#   codex-cli    — OpenAI Codex CLI
+#   aider        — Aider
+#   custom       — Your own agent (copy adapters/custom.sh)
 #
 # Features:
 #   - Runs multiple autonomous rounds within a configurable time window
@@ -39,11 +46,14 @@ COMPLETION_SIGNAL="${COMPLETION_SIGNAL:-NIGHT_SHIFT_COMPLETE}"  # Agent signals 
 COMPLETION_THRESHOLD="${COMPLETION_THRESHOLD:-2}"  # Consecutive signals to stop
 SHARED_NOTES="${NIGHT_SHIFT_DIR}/protocols/examples/shared_task_notes.md"
 
-# Claude Code binary
-CLAUDE_BIN="${CLAUDE_BIN:-claude}"
+# Agent adapter (claude-code, codex-cli, aider, or custom)
+AGENT_ADAPTER="${AGENT_ADAPTER:-claude-code}"
+
+# Agent binary (override to use a custom path)
+AGENT_BIN="${AGENT_BIN:-}"
 
 # Permission mode: set to "true" ONLY if you understand the risks.
-# When enabled, Claude Code runs with full autonomous permissions (file I/O, shell commands).
+# When enabled, the agent runs with full autonomous permissions.
 # WARNING: This gives the AI unrestricted access to your system within the session.
 SKIP_PERMISSIONS="${SKIP_PERMISSIONS:-false}"
 
@@ -54,13 +64,33 @@ while [[ $# -gt 0 ]]; do
         --window-hours) WINDOW_HOURS="$2"; shift 2 ;;
         --prompt) PROMPT_FILE="$2"; shift 2 ;;
         --timeout) ROUND_TIMEOUT="$2"; shift 2 ;;
+        --adapter) AGENT_ADAPTER="$2"; shift 2 ;;
         --help|-h)
-            echo "Usage: $0 [--max-rounds N] [--window-hours H] [--prompt FILE] [--timeout SEC]"
+            echo "Usage: $0 [--max-rounds N] [--window-hours H] [--prompt FILE] [--timeout SEC] [--adapter NAME]"
+            echo ""
+            echo "Adapters: claude-code (default), codex-cli, aider, custom"
             exit 0
             ;;
         *) echo "Unknown option: $1"; exit 1 ;;
     esac
 done
+
+# ── Load agent adapter ──
+ADAPTER_FILE="${NIGHT_SHIFT_DIR}/adapters/${AGENT_ADAPTER}.sh"
+if [ ! -f "$ADAPTER_FILE" ]; then
+    echo "ERROR: Adapter not found: $ADAPTER_FILE"
+    echo "Available adapters:"
+    ls "${NIGHT_SHIFT_DIR}/adapters/"*.sh 2>/dev/null | xargs -I{} basename {} .sh
+    exit 1
+fi
+# shellcheck source=/dev/null
+source "$ADAPTER_FILE"
+
+# Verify the agent CLI is installed
+if ! adapter_verify; then
+    echo "ERROR: $(adapter_name) CLI not found. Install it first."
+    exit 1
+fi
 
 # ── Setup ──
 mkdir -p "$LOGS_DIR" "$REPORTS_DIR"
@@ -105,6 +135,7 @@ fi
 # ── Main Loop ──
 log "=== Night Shift Started ==="
 log "Config: max_rounds=$MAX_ROUNDS, window=${WINDOW_HOURS}h, timeout=${ROUND_TIMEOUT}s"
+log "Agent: $(adapter_name) (adapter: $AGENT_ADAPTER)"
 log "Prompt: $PROMPT_FILE"
 log "Window ends at: $(date -d "@$WINDOW_END" '+%Y-%m-%d %H:%M:%S' 2>/dev/null || date -r "$WINDOW_END" '+%Y-%m-%d %H:%M:%S' 2>/dev/null || echo "$WINDOW_END")"
 
@@ -148,19 +179,11 @@ while [ "$ROUND" -lt "$MAX_ROUNDS" ]; do
     ROUND_PROMPT="${ROUND_PROMPT//\{REMAINING_TIME\}/$((REMAINING / 60)) minutes}"
     ROUND_PROMPT="${ROUND_PROMPT//\{SHARED_NOTES\}/$NOTES_CONTEXT}"
 
-    # Execute Claude Code
+    # Execute agent via adapter
     ROUND_REPORT="${REPORTS_DIR}/${DATE_TAG}_round${ROUND}.md"
     ROUND_EXIT=0
 
-    CLAUDE_FLAGS=(--print)
-    if [ "$SKIP_PERMISSIONS" = "true" ]; then
-        CLAUDE_FLAGS+=(--dangerously-skip-permissions)
-    fi
-
-    timeout "$EFFECTIVE_TIMEOUT" "$CLAUDE_BIN" \
-        "${CLAUDE_FLAGS[@]}" \
-        -p "$ROUND_PROMPT" \
-        > "$ROUND_REPORT" 2>&1 || ROUND_EXIT=$?
+    adapter_run "$ROUND_PROMPT" "$ROUND_REPORT" "$EFFECTIVE_TIMEOUT" || ROUND_EXIT=$?
 
     # Handle exit codes
     case $ROUND_EXIT in
@@ -172,7 +195,7 @@ while [ "$ROUND" -lt "$MAX_ROUNDS" ]; do
             ;;
         *)
             # Check for rate limit in output
-            if grep -qi "rate.limit\|too many\|429\|quota" "$ROUND_REPORT" 2>/dev/null; then
+            if adapter_check_rate_limit "$ROUND_REPORT"; then
                 log "Rate limit detected, waiting ${RATE_LIMIT_WAIT}s..."
                 if [ -f "$NIGHT_CHAT" ] || [ -d "$(dirname "$NIGHT_CHAT")" ]; then
                     echo "[$(date '+%H:%M')] NightShift: Rate limited, waiting $(( RATE_LIMIT_WAIT / 60 ))min" >> "$NIGHT_CHAT" 2>/dev/null || true
@@ -186,7 +209,7 @@ while [ "$ROUND" -lt "$MAX_ROUNDS" ]; do
     esac
 
     # Check for completion signal (agent says "I'm done")
-    if grep -q "$COMPLETION_SIGNAL" "$ROUND_REPORT" 2>/dev/null; then
+    if adapter_check_completion "$ROUND_REPORT" "$COMPLETION_SIGNAL"; then
         CONSECUTIVE_COMPLETE=$((CONSECUTIVE_COMPLETE + 1))
         log "Completion signal detected ($CONSECUTIVE_COMPLETE/$COMPLETION_THRESHOLD)"
         if [ "$CONSECUTIVE_COMPLETE" -ge "$COMPLETION_THRESHOLD" ]; then

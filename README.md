@@ -127,14 +127,43 @@ Open `dashboard/index.html` in a browser. Drag and drop your report files to vis
 - Night chat messages
 - System health metrics
 
+## Agent Adapters
+
+The night shift runner is agent-agnostic. Switch agents with one config change:
+
+```bash
+# In config.env
+AGENT_ADAPTER=claude-code   # default
+# AGENT_ADAPTER=codex-cli   # OpenAI Codex CLI
+# AGENT_ADAPTER=aider       # Aider
+# AGENT_ADAPTER=custom      # Your own (copy adapters/custom.sh)
+```
+
+Or via CLI flag:
+```bash
+bash claude-code/night_shift.sh --adapter codex-cli
+```
+
+Create your own adapter: copy `adapters/custom.sh`, implement 5 functions, done. See [adapters/](adapters/) for details.
+
+## Prompt Design for Autonomy
+
+The most common pitfall: your agent stops mid-task and waits for confirmation that never comes.
+
+All included templates have an **Autonomy Rules** block that prevents this:
+- Never ask for confirmation — decide and execute
+- Never wait for user input — choose the safest option and proceed
+- Never use interactive commands
+- If stuck 3 times, log and move on
+
+See [docs/advanced.md](docs/advanced.md) for the full prompt design guide.
+
 ## Advanced Features
 
 - **Completion Signal** — agents can say "I'm done" to end the shift early
 - **Shared Task Notes** — cross-round context memory bridge
 - **De-Sloppify Pattern** — separate cleanup pass for code quality
 - **Anti-Pattern Guide** — avoid common autonomous loop pitfalls
-
-Inspired by patterns from the Claude Code community and autonomous agent best practices.
 
 ## Requirements
 
