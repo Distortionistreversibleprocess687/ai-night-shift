@@ -48,19 +48,20 @@ fi
 TARGET_INBOX="${INBOX_BASE}/${TARGET}"
 mkdir -p "$TARGET_INBOX"
 
-# Write notification JSON
+# Write notification JSON (using python3 for safe escaping)
 FILENAME="result_${TASK_ID}_$(date +%s).json"
-cat > "${TARGET_INBOX}/${FILENAME}" << EOF
-{
-  "from": "${SENDER}",
-  "to": "${TARGET}",
-  "type": "result",
-  "task_id": "${TASK_ID}",
-  "status": "${STATUS}",
-  "summary": "${SUMMARY}",
-  "ts": "${TIMESTAMP}"
-}
-EOF
+python3 -c "
+import json, sys
+print(json.dumps({
+    'from': sys.argv[1],
+    'to': sys.argv[2],
+    'type': 'result',
+    'task_id': sys.argv[3],
+    'status': sys.argv[4],
+    'summary': sys.argv[5],
+    'ts': sys.argv[6]
+}, indent=2))
+" "$SENDER" "$TARGET" "$TASK_ID" "$STATUS" "$SUMMARY" "$TIMESTAMP" > "${TARGET_INBOX}/${FILENAME}"
 
 # Also log to night_chat
 if [ -d "$(dirname "$NIGHT_CHAT")" ]; then

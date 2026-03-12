@@ -56,9 +56,9 @@ log() {
 # ── Collect inbox items ──
 INBOX_CONTENT=""
 if [ -d "$INBOX_DIR" ] && [ "$(ls -A "$INBOX_DIR" 2>/dev/null | grep -v done)" ]; then
-    INBOX_CONTENT=$(python3 -c "
+    INBOX_CONTENT=$(INBOX_PATH="$INBOX_DIR" python3 -c "
 import json, os, glob
-inbox = '$INBOX_DIR'
+inbox = os.environ['INBOX_PATH']
 items = []
 for f in sorted(glob.glob(os.path.join(inbox, '*.json'))):
     if '/done/' in f:
@@ -93,14 +93,14 @@ if [ ! -f "$PROMPT_FILE" ]; then
 fi
 
 PROMPT=$(cat "$PROMPT_FILE")
-PROMPT="${PROMPT/\{TIMESTAMP\}/$TIMESTAMP}"
-PROMPT="${PROMPT/\{INBOX\}/${INBOX_CONTENT:-No pending items}}"
-PROMPT="${PROMPT/\{RECENT_CHAT\}/${RECENT_CHAT:-No recent messages}}"
+PROMPT="${PROMPT//\{TIMESTAMP\}/$TIMESTAMP}"
+PROMPT="${PROMPT//\{INBOX\}/${INBOX_CONTENT:-No pending items}}"
+PROMPT="${PROMPT//\{RECENT_CHAT\}/${RECENT_CHAT:-No recent messages}}"
 
 # ── Execute Gemini CLI ──
 log "Patrol started"
 
-RESULT=$($GEMINI_BIN -p "$PROMPT" --yolo 2>&1 | grep -v "^Loaded cached\|^\[ERROR\]\|^$" | head -30) || true
+RESULT=$("$GEMINI_BIN" -p "$PROMPT" --approval-mode yolo 2>&1 | grep -v "^Loaded cached\|^\[ERROR\]\|^$" | head -30) || true
 
 if [ -n "$RESULT" ]; then
     # Write output

@@ -36,7 +36,7 @@ bash "${NIGHT_SHIFT_DIR}/plugins/plugin_loader.sh" --phase pre 2>&1 | tee -a "$W
 # ── Phase 2: Main night shift ──
 log "Starting night shift..."
 bash "${NIGHT_SHIFT_DIR}/claude-code/night_shift.sh" "$@" 2>&1 | tee -a "$WRAPPER_LOG"
-SHIFT_EXIT=$?
+SHIFT_EXIT=${PIPESTATUS[0]}
 
 log "Night shift exited with code $SHIFT_EXIT"
 

@@ -74,5 +74,5 @@ WARNINGS=0
 
 echo "Health report: $HEALTH_FILE ($WARNINGS warnings)"
 
-# Exit with warning code if issues found
-[ $WARNINGS -gt 0 ] && exit 0 || exit 0  # Don't fail the night shift
+# Don't fail the night shift regardless of warnings
+exit 0

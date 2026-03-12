@@ -61,7 +61,8 @@ bash install.sh
 ### 2. Configure
 
 ```bash
-# Edit your settings
+# Copy the example config and edit your settings
+cp config.env.example config.env
 nano config.env
 
 # Customize the night shift prompt
@@ -140,8 +141,8 @@ Inspired by patterns from [autonomous-loops](https://github.com/anthropics/ecc) 
 - **Bash 4+** and **Python 3.6+**
 - At least one AI CLI tool:
   - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (`npm install -g @anthropic-ai/claude-code`)
-  - [Gemini CLI](https://github.com/google-gemini/gemini-cli) (`npm install -g @anthropic-ai/gemini-cli`)
-- A Linux/macOS system with cron (or any task scheduler)
+  - [Gemini CLI](https://github.com/google-gemini/gemini-cli) (`npm install -g @google/gemini-cli`)
+- A Linux/macOS system with `cron` and `timeout` (GNU coreutils; macOS: `brew install coreutils`)
 
 ## Safety & Security
 

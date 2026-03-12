@@ -36,8 +36,8 @@ fi
 echo "Reviewing changes for code slop..."
 
 # Run Claude Code in non-interactive cleanup mode
-if command -v $CLAUDE_BIN &>/dev/null; then
-    $CLAUDE_BIN --print -p "Review all uncommitted changes in this repository. Remove:
+if command -v "$CLAUDE_BIN" &>/dev/null; then
+    "$CLAUDE_BIN" --print -p "Review all uncommitted changes in this repository. Remove:
 - Tests that verify language/framework behavior rather than business logic
 - Redundant type checks that the type system already enforces
 - Over-defensive error handling for impossible states

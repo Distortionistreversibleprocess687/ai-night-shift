@@ -70,6 +70,12 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# Detect pipe mode (curl | bash)
+INTERACTIVE=true
+if [ ! -t 0 ]; then
+    INTERACTIVE=false
+fi
+
 print_header
 
 # ── Pre-flight checks ──
@@ -94,11 +100,15 @@ if ! $HAS_CLAUDE && ! $HAS_GEMINI; then
     log_warn "Neither 'claude' nor 'gemini' CLI found."
     log_warn "Install at least one to use the night shift system."
     log_warn "  Claude Code: npm install -g @anthropic-ai/claude-code"
-    log_warn "  Gemini CLI:  npm install -g @anthropic-ai/gemini-cli"
+    log_warn "  Gemini CLI:  npm install -g @google/gemini-cli"
     echo ""
-    read -p "Continue anyway? (y/N) " -n 1 -r
-    echo
-    [[ $REPLY =~ ^[Yy]$ ]] || exit 0
+    if $INTERACTIVE; then
+        read -p "Continue anyway? (y/N) " -n 1 -r
+        echo
+        [[ $REPLY =~ ^[Yy]$ ]] || exit 0
+    else
+        log_warn "Running in non-interactive mode, continuing anyway..."
+    fi
 fi
 
 # ── Create directory structure ──
@@ -186,7 +196,7 @@ if $SETUP_CRON; then
     log_info "Setting up cron jobs..."
 
     # Backup existing crontab
-    CRON_BACKUP="/tmp/crontab_backup_$(date +%s)"
+    CRON_BACKUP=$(mktemp /tmp/crontab_backup.XXXXXX)
     crontab -l > "$CRON_BACKUP" 2>/dev/null || true
 
     # Check if our jobs already exist

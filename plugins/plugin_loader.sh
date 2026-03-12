@@ -65,7 +65,9 @@ discover_plugins() {
     for f in "${ENABLED_DIR}"/*.sh; do
         [ -f "$f" ] && plugins+=("$f")
     done
-    echo "${plugins[@]}"
+    if [ ${#plugins[@]} -gt 0 ]; then
+        echo "${plugins[@]}"
+    fi
 }
 
 # ── Extract plugin metadata from header comments ──

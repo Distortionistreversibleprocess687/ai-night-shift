@@ -31,6 +31,6 @@ if [ -f "$CHAT" ]; then
 fi
 
 # Cleanup old backups (keep 7 days)
-find "$BACKUP_DIR" -maxdepth 1 -type d -mtime +7 -exec rm -rf {} \; 2>/dev/null || true
+find "$BACKUP_DIR" -maxdepth 1 -mindepth 1 -type d -mtime +7 -exec rm -rf {} \; 2>/dev/null || true
 
 echo "Backups stored in ${BACKUP_DIR}/${DATE_TAG}/"

@@ -37,6 +37,11 @@ SHARED_NOTES="${NIGHT_SHIFT_DIR}/protocols/examples/shared_task_notes.md"
 # Claude Code binary
 CLAUDE_BIN="${CLAUDE_BIN:-claude}"
 
+# Permission mode: set to "true" ONLY if you understand the risks.
+# When enabled, Claude Code runs with full autonomous permissions (file I/O, shell commands).
+# WARNING: This gives the AI unrestricted access to your system within the session.
+SKIP_PERMISSIONS="${SKIP_PERMISSIONS:-false}"
+
 # ── Parse arguments ──
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -63,24 +68,27 @@ log() {
     echo "$msg" | tee -a "$SESSION_LOG"
 }
 
+LOCK_DIR="${LOGS_DIR}/night_shift.lock"
+
 cleanup() {
-    rm -f "$PID_FILE"
+    rm -rf "$LOCK_DIR"
     log "Night shift session ended"
 }
 trap cleanup EXIT
 
-# ── PID Lock ──
-if [ -f "$PID_FILE" ]; then
-    OLD_PID=$(cat "$PID_FILE")
-    if kill -0 "$OLD_PID" 2>/dev/null; then
+# ── PID Lock (atomic mkdir to prevent TOCTOU race) ──
+if ! mkdir "$LOCK_DIR" 2>/dev/null; then
+    OLD_PID=$(cat "$LOCK_DIR/pid" 2>/dev/null || echo "")
+    if [ -n "$OLD_PID" ] && kill -0 "$OLD_PID" 2>/dev/null; then
         log "ERROR: Night shift already running (PID $OLD_PID)"
         exit 1
     else
-        log "WARN: Stale PID file found, cleaning up"
-        rm -f "$PID_FILE"
+        log "WARN: Stale lock found, cleaning up"
+        rm -rf "$LOCK_DIR"
+        mkdir "$LOCK_DIR"
     fi
 fi
-echo $$ > "$PID_FILE"
+echo $$ > "$LOCK_DIR/pid"
 
 # ── Validate prompt file ──
 if [ ! -f "$PROMPT_FILE" ]; then
@@ -92,7 +100,7 @@ fi
 log "=== Night Shift Started ==="
 log "Config: max_rounds=$MAX_ROUNDS, window=${WINDOW_HOURS}h, timeout=${ROUND_TIMEOUT}s"
 log "Prompt: $PROMPT_FILE"
-log "Window ends at: $(date -d @$WINDOW_END '+%Y-%m-%d %H:%M:%S' 2>/dev/null || date -r $WINDOW_END '+%Y-%m-%d %H:%M:%S' 2>/dev/null || echo $WINDOW_END)"
+log "Window ends at: $(date -d "@$WINDOW_END" '+%Y-%m-%d %H:%M:%S' 2>/dev/null || date -r "$WINDOW_END" '+%Y-%m-%d %H:%M:%S' 2>/dev/null || echo "$WINDOW_END")"
 
 ROUND=0
 CONSECUTIVE_COMPLETE=0
@@ -126,21 +134,25 @@ while [ $ROUND -lt $MAX_ROUNDS ]; do
         NOTES_CONTEXT=$(cat "$SHARED_NOTES")
     fi
 
-    # Build the prompt with context injection
+    # Build the prompt with context injection (// for global replace)
     ROUND_PROMPT=$(cat "$PROMPT_FILE")
-    ROUND_PROMPT="${ROUND_PROMPT/\{ROUND\}/$ROUND}"
-    ROUND_PROMPT="${ROUND_PROMPT/\{MAX_ROUNDS\}/$MAX_ROUNDS}"
-    ROUND_PROMPT="${ROUND_PROMPT/\{DATE\}/$DATE_TAG}"
-    ROUND_PROMPT="${ROUND_PROMPT/\{REMAINING_TIME\}/$((REMAINING / 60)) minutes}"
-    ROUND_PROMPT="${ROUND_PROMPT/\{SHARED_NOTES\}/$NOTES_CONTEXT}"
+    ROUND_PROMPT="${ROUND_PROMPT//\{ROUND\}/$ROUND}"
+    ROUND_PROMPT="${ROUND_PROMPT//\{MAX_ROUNDS\}/$MAX_ROUNDS}"
+    ROUND_PROMPT="${ROUND_PROMPT//\{DATE\}/$DATE_TAG}"
+    ROUND_PROMPT="${ROUND_PROMPT//\{REMAINING_TIME\}/$((REMAINING / 60)) minutes}"
+    ROUND_PROMPT="${ROUND_PROMPT//\{SHARED_NOTES\}/$NOTES_CONTEXT}"
 
     # Execute Claude Code
     ROUND_REPORT="${REPORTS_DIR}/${DATE_TAG}_round${ROUND}.md"
     ROUND_EXIT=0
 
-    timeout "$EFFECTIVE_TIMEOUT" $CLAUDE_BIN \
-        --print \
-        --dangerously-skip-permissions \
+    CLAUDE_FLAGS=(--print)
+    if [ "$SKIP_PERMISSIONS" = "true" ]; then
+        CLAUDE_FLAGS+=(--dangerously-skip-permissions)
+    fi
+
+    timeout "$EFFECTIVE_TIMEOUT" "$CLAUDE_BIN" \
+        "${CLAUDE_FLAGS[@]}" \
         -p "$ROUND_PROMPT" \
         > "$ROUND_REPORT" 2>&1 || ROUND_EXIT=$?
 

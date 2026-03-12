@@ -53,23 +53,21 @@ fi
 TARGET_INBOX="${INBOX_BASE}/${TARGET}"
 mkdir -p "$TARGET_INBOX"
 
-# Build message JSON
+# Build message JSON (using python3 for safe escaping)
 FILENAME="msg_$(date +%s)_${RANDOM}.json"
-TASK_FIELD=""
-if [ -n "$TASK_ID" ]; then
-    TASK_FIELD="\"task_id\": \"${TASK_ID}\","
-fi
-
-cat > "${TARGET_INBOX}/${FILENAME}" << EOF
-{
-  "from": "${SENDER}",
-  "to": "${TARGET}",
-  "type": "message",
-  ${TASK_FIELD}
-  "message": "${MESSAGE}",
-  "ts": "${TIMESTAMP}"
+python3 -c "
+import json, sys
+data = {
+    'from': sys.argv[1],
+    'to': sys.argv[2],
+    'type': 'message',
+    'message': sys.argv[3],
+    'ts': sys.argv[4]
 }
-EOF
+if sys.argv[5]:
+    data['task_id'] = sys.argv[5]
+print(json.dumps(data, indent=2))
+" "$SENDER" "$TARGET" "$MESSAGE" "$TIMESTAMP" "$TASK_ID" > "${TARGET_INBOX}/${FILENAME}"
 
 # Log to night_chat
 if [ -d "$(dirname "$NIGHT_CHAT")" ]; then

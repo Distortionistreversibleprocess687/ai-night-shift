@@ -64,13 +64,12 @@ echo "Morning briefing: $MORNING_REPORT"
 
 # ── Optional: Send to Telegram ──
 if [ -n "${TELEGRAM_BOT_TOKEN:-}" ] && [ -n "${TELEGRAM_CHAT_ID:-}" ]; then
-    # Create a concise TG-friendly version
-    TG_MSG=$(head -30 "$MORNING_REPORT" | sed 's/#//g' | head -20)
+    # Create a concise TG-friendly version (strip Markdown special chars)
+    TG_MSG=$(head -30 "$MORNING_REPORT" | sed 's/[#*_`\[]//g' | head -20)
 
     curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+        --data-urlencode "text=$TG_MSG" \
         -d chat_id="$TELEGRAM_CHAT_ID" \
-        -d text="$TG_MSG" \
-        -d parse_mode="Markdown" \
         > /dev/null 2>&1 || echo "WARN: Failed to send TG notification"
 
     echo "TG notification sent"
