@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.0.3] — 2026-03-13
+
+### Fixed
+- **Critical:** `gnap_checkpoint.sh` orphan branch now properly initialized with `--allow-empty` commit (worktree add previously failed on first use)
+- **Critical:** `gnap_checkpoint.sh` now enforces `MAX_CHECKPOINTS` pruning (was configured but never implemented)
+- **Bug:** `gnap_checkpoint.sh` added cleanup trap to prevent temp directory and worktree leaks on failure
+- **Bug:** `gnap_checkpoint.sh` resume function now uses proper if/then/else instead of fragile `A && B || C` pattern
+- **Bug:** `patrol.sh` no longer marks inbox items as done when Gemini CLI fails (error was silently swallowed)
+- **Cleanup:** Removed unused `discover_plugins()` dead code from `plugin_loader.sh`
+- **Meta:** Added `PLUGIN_NAME` and `PLUGIN_PHASE` headers to `gnap_checkpoint.sh` for plugin_loader discovery
+
+## [1.0.2] — 2026-03-13
+
+### Added
+- **Plugin:** `gnap_checkpoint.sh` — Git-native state checkpointing for crash recovery and cross-machine resume ([#1](https://github.com/JudyaiLab/ai-night-shift/issues/1))
+  - Commits agent state (night_chat, bot_inbox) to an orphan branch after each round
+  - Uses git worktree to avoid disrupting main work
+  - Includes `--resume` flag to restore state on a different machine
+  - Inspired by [GNAP](https://github.com/farol-team/gnap)
+
 ## [1.0.1] — 2026-03-12
 
 ### Fixed

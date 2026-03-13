@@ -106,9 +106,12 @@ PROMPT="${PROMPT//\{RECENT_CHAT\}/${RECENT_CHAT:-No recent messages}}"
 # ── Execute Gemini CLI ──
 log "Patrol started"
 
-RESULT=$("$GEMINI_BIN" -p "$PROMPT" --approval-mode yolo 2>&1 | grep -v "^Loaded cached\|^\[ERROR\]\|^$" | head -30) || true
+GEMINI_EXIT=0
+RESULT=$("$GEMINI_BIN" -p "$PROMPT" --approval-mode yolo 2>&1 | grep -v "^Loaded cached\|^\[ERROR\]\|^$" | head -30) || GEMINI_EXIT=$?
 
-if [ -n "$RESULT" ]; then
+if [ "$GEMINI_EXIT" -ne 0 ] && [ -z "$RESULT" ]; then
+    log "ERROR: Gemini CLI failed (exit=$GEMINI_EXIT). Inbox items NOT marked as done."
+elif [ -n "$RESULT" ]; then
     # Write output
     echo "$RESULT" > "$OUTPUT_FILE"
 
@@ -117,7 +120,7 @@ if [ -n "$RESULT" ]; then
         echo "[$(date '+%H:%M')] GeminiPatrol: $( echo "$RESULT" | head -3 | tr '\n' ' ')" >> "$NIGHT_CHAT" 2>/dev/null || true
     fi
 
-    # Move processed inbox items to done
+    # Move processed inbox items to done (only if Gemini succeeded)
     if [ -d "$INBOX_DIR" ]; then
         mkdir -p "$INBOX_DIR/done"
         mv "$INBOX_DIR"/*.json "$INBOX_DIR/done/" 2>/dev/null || true

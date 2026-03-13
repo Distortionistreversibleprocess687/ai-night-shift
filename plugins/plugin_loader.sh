@@ -58,18 +58,6 @@ log() {
     echo "[$(date '+%H:%M:%S')] [plugin_loader] $*"
 }
 
-# ── Discover plugins ──
-# Plugins can be in enabled/ (symlinks or copies from examples/)
-discover_plugins() {
-    local plugins=()
-    for f in "${ENABLED_DIR}"/*.sh; do
-        [ -f "$f" ] && plugins+=("$f")
-    done
-    if [ ${#plugins[@]} -gt 0 ]; then
-        echo "${plugins[@]}"
-    fi
-}
-
 # ── Extract plugin metadata from header comments ──
 get_plugin_meta() {
     local file="$1"
